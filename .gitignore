@@ -1,0 +1,20 @@
+# Environments
+.env
+venv/
+env/
+__pycache__/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Datasets and Large Files (Keep your GitHub clean)
+data/raw/
+data/processed/
+*.csv
+*.pdf
+*.db
+*.sqlite3
+
+# OS generated files
+.DS_Store
+Thumbs.db
