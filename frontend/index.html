@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AdaalAI — Pakistan Judicial AI Assistant</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root {
+    --navy: #1B2A4A; --navy-d: #0f1e36; --gold: #C9A84C; --gold-l: #fdf3dc;
+    --teal: #0F5F52; --teal-l: #e0f5f1; --rose: #8B2020; --rose-l: #fce8e8;
+    --bg: #F5F3EE; --card: #FDFCF9; --ink: #1a1a1c; --ink2: #46464a;
+    --ink3: #8a8a90; --border: rgba(24,24,26,.1); --border2: rgba(24,24,26,.06);
+    --radius: 14px; --shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; background:var(--bg); color:var(--ink); }
+  input,textarea,select,button { font-family: inherit; }
+  button { cursor:pointer; }
+
+  /* NAV */
+  .nav { background:var(--navy); height:56px; display:flex; align-items:center; padding:0 1.5rem; gap:1rem; position:sticky; top:0; z-index:100; }
+  .nav-logo { color:#fff; font-size:20px; font-weight:700; letter-spacing:-.02em; }
+  .nav-logo span { color:var(--gold); }
+  .nav-tag { color:rgba(255,255,255,.45); font-size:12px; }
+  .nav-tabs { display:flex; gap:4px; margin-left:auto; }
+  .nav-tab { background:transparent; border:none; color:rgba(255,255,255,.55); padding:6px 14px; border-radius:8px; font-size:13px; font-weight:500; transition:all .15s; }
+  .nav-tab:hover { color:#fff; background:rgba(255,255,255,.08); }
+  .nav-tab.active { background:var(--gold); color:var(--navy); }
+
+  /* LAYOUT */
+  .page { max-width:900px; margin:0 auto; padding:2rem 1.5rem; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; box-shadow:var(--shadow); }
+  .card + .card { margin-top:1rem; }
+  h2 { font-size:22px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+  h3 { font-size:15px; font-weight:600; color:var(--ink); margin-bottom:8px; }
+  .sub { font-size:14px; color:var(--ink3); margin-bottom:1.5rem; }
+  label { font-size:13px; font-weight:600; color:var(--ink2); display:block; margin-bottom:6px; }
+  textarea, input, select {
+    width:100%; border:1px solid var(--border); border-radius:10px;
+    padding:10px 14px; font-size:14px; color:var(--ink); background:#fff;
+    resize:vertical; outline:none; transition:border-color .15s;
+  }
+  textarea:focus, input:focus { border-color:var(--navy); }
+  .form-row { margin-bottom:1rem; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:560px){ .row { grid-template-columns:1fr; } }
+
+  /* BUTTONS */
+  .btn { border:none; border-radius:10px; padding:10px 22px; font-size:14px; font-weight:600; transition:all .15s; display:inline-flex; align-items:center; gap:8px; }
+  .btn-primary { background:var(--navy); color:#fff; }
+  .btn-primary:hover:not(:disabled) { background:var(--navy-d); }
+  .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-gold { background:var(--gold); color:var(--navy); }
+  .btn-gold:hover:not(:disabled) { background:#b8953e; }
+  .btn-sm { padding:6px 14px; font-size:13px; }
+  .btn-outline { background:transparent; border:1px solid var(--border); color:var(--ink2); }
+  .btn-outline:hover { border-color:var(--navy); color:var(--navy); }
+
+  /* BADGES */
+  .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; }
+  .badge-high   { background:var(--rose-l); color:var(--rose); }
+  .badge-medium { background:#faeeda; color:#633806; }
+  .badge-low    { background:var(--teal-l); color:var(--teal); }
+  .badge-navy   { background:rgba(27,42,74,.1); color:var(--navy); }
+
+  /* RESULTS */
+  .result-box { background:#fff; border:1px solid var(--border2); border-radius:10px; padding:1.25rem; margin-top:1rem; }
+  .result-box pre { white-space:pre-wrap; font-size:13px; line-height:1.7; color:var(--ink2); font-family:inherit; }
+  .source-chip { display:inline-block; background:var(--gold-l); border:1px solid rgba(201,168,76,.3); color:#7a5800; font-size:12px; padding:3px 10px; border-radius:6px; margin:3px; }
+  .flags-list { margin-top:8px; }
+  .flag-item { font-size:13px; color:var(--ink2); padding:6px 10px; background:var(--gold-l); border-radius:8px; margin-bottom:6px; border-left:3px solid var(--gold); }
+  .flag-item.danger { background:var(--rose-l); border-left-color:var(--rose); }
+  .spinner { display:inline-block; width:18px; height:18px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .section-card { background:#fff; border:1px solid var(--border2); border-radius:10px; padding:1rem; margin-bottom:10px; }
+  .section-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+  .section-num { font-size:18px; font-weight:700; color:var(--navy); }
+  .severity { font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; }
+  .sev-high     { background:var(--rose-l); color:var(--rose); }
+  .sev-medium   { background:#faeeda; color:#633806; }
+  .sev-low      { background:var(--teal-l); color:var(--teal); }
+  .sev-critical { background:var(--rose-l); color:var(--rose); border:1px solid var(--rose); }
+  .case-row { display:grid; grid-template-columns:auto 1fr auto auto; gap:10px; align-items:center; padding:10px 14px; background:#fff; border:1px solid var(--border2); border-radius:10px; margin-bottom:8px; }
+  .case-row.high   { border-left:4px solid var(--rose); }
+  .case-row.medium { border-left:4px solid var(--gold); }
+  .case-row.low    { border-left:4px solid var(--teal); }
+  .chat-bubble { padding:12px 16px; border-radius:12px; margin-bottom:10px; max-width:85%; font-size:14px; line-height:1.65; white-space:pre-wrap; }
+  .chat-user { background:var(--navy); color:#fff; margin-left:auto; border-bottom-right-radius:4px; }
+  .chat-ai   { background:#fff; border:1px solid var(--border); color:var(--ink); border-bottom-left-radius:4px; }
+  .chat-emergency { background:var(--rose-l); border:1px solid rgba(139,32,32,.2); color:var(--rose); padding:10px 14px; border-radius:10px; margin-top:8px; font-size:13px; }
+  .conf-bar { height:6px; background:#eee; border-radius:3px; overflow:hidden; margin-top:4px; }
+  .conf-fill { height:100%; background:var(--navy); border-radius:3px; transition:width .4s; }
+  .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:1rem; }
+  .stat-box { background:#fff; border:1px solid var(--border2); border-radius:10px; padding:12px; text-align:center; }
+  .stat-n { font-size:22px; font-weight:700; color:var(--navy); }
+  .stat-l { font-size:12px; color:var(--ink3); margin-top:2px; }
+  .disclaimer { font-size:12px; color:var(--ink3); background:var(--gold-l); border-radius:8px; padding:10px 14px; margin-top:1rem; border-left:3px solid var(--gold); }
+  .welcome { text-align:center; padding:3rem 2rem; }
+  .welcome h1 { font-size:32px; font-weight:800; color:var(--navy); margin-bottom:8px; }
+  .welcome h1 span { color:var(--gold); }
+  .welcome-sub { font-size:15px; color:var(--ink3); margin-bottom:2rem; }
+  .module-cards { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:2rem; }
+  @media(max-width:480px){ .module-cards { grid-template-columns:1fr; } }
+  .module-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; cursor:pointer; transition:all .15s; text-align:left; }
+  .module-card:hover { border-color:var(--navy); transform:translateY(-1px); box-shadow:var(--shadow); }
+  .module-icon { font-size:28px; margin-bottom:10px; }
+  .module-card h3 { font-size:15px; color:var(--navy); margin-bottom:4px; }
+  .module-card p  { font-size:13px; color:var(--ink3); line-height:1.5; }
+  .alert-banner { background:rgba(201,168,76,.12); border:1px solid rgba(201,168,76,.3); border-radius:10px; padding:10px 16px; font-size:13px; color:var(--ink2); margin-bottom:1.5rem; }
+  .alert-banner strong { color:var(--gold); }
+  .fir-text { font-family:'Courier New', monospace; font-size:13px; line-height:1.8; white-space:pre-wrap; background:#f8f8f5; border:1px solid var(--border2); border-radius:8px; padding:1.25rem; margin-top:1rem; }
+  #chat-list { min-height:200px; max-height:400px; overflow-y:auto; padding:10px 0; }
+  .chat-input-row { display:flex; gap:8px; margin-top:10px; }
+  .chat-input-row input { flex:1; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+const API = "http://localhost:8000";
+
+// ── API calls ────────────────────────────────────────────────────────────────
+const api = {
+  research: (q, top_k, section) =>
+    fetch(`${API}/api/research`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ query:q, top_k, section_filter:section||null })
+    }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail||"Error") })),
+
+  firDraft: (text) =>
+    fetch(`${API}/api/fir/draft`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ complaint_text: text })
+    }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail||"Error") })),
+
+  scoreCase: (c) =>
+    fetch(`${API}/api/cases/score`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(c)
+    }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail||"Error") })),
+
+  chat: (q) =>
+    fetch(`${API}/api/chat`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ question: q })
+    }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail||"Error") })),
+
+  buildIndex: () =>
+    fetch(`${API}/api/admin/build-index`, { method:"POST" }).then(r => r.json()),
+
+  trainModel: () =>
+    fetch(`${API}/api/admin/train-model`, { method:"POST" }).then(r => r.json()),
+
+  status: () =>
+    fetch(`${API}/api/admin/status`).then(r => r.json()),
+};
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+const Spinner = () => <span className="spinner" />;
+
+const Badge = ({ label }) => {
+  const cls = label === "High" ? "badge-high" : label === "Medium" ? "badge-medium" : "badge-low";
+  return <span className={`badge ${cls}`}>{label}</span>;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 1 — Legal Research
+// ═══════════════════════════════════════════════════════════════════════════
+function LegalResearch() {
+  const [query, setQuery] = useState("");
+  const [topK, setTopK] = useState(5);
+  const [section, setSection] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async () => {
+    if (!query.trim()) return;
+    setLoading(true); setErr(""); setResult(null);
+    try {
+      const r = await api.research(query, topK, section);
+      setResult(r);
+    } catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      <div className="card">
+        <h2>⚖️ Legal Research Assistant</h2>
+        <p className="sub">Search 350,000+ Pakistani court judgments by natural language. Works in Urdu and English.</p>
+
+        <div className="form-row">
+          <label>Your legal question (اپنا قانونی سوال لکھیں)</label>
+          <textarea rows={3} value={query} onChange={e=>setQuery(e.target.value)}
+            placeholder="e.g. What are the bail conditions in a murder case under Section 302? or زنا بالجبر کے مقدمے میں ضمانت کے کیا اصول ہیں؟" />
+        </div>
+
+        <div className="row" style={{marginBottom:"1rem"}}>
+          <div>
+            <label>PPC Section filter (optional)</label>
+            <input value={section} onChange={e=>setSection(e.target.value)} placeholder="e.g. 302, 379, 354" />
+          </div>
+          <div>
+            <label>Results to retrieve</label>
+            <select value={topK} onChange={e=>setTopK(+e.target.value)}>
+              {[3,5,8,10].map(n=><option key={n} value={n}>{n} judgments</option>)}
+            </select>
+          </div>
+        </div>
+
+        <button className="btn btn-primary" onClick={submit} disabled={loading||!query.trim()}>
+          {loading ? <><Spinner /> Searching...</> : "🔍 Search Judgments"}
+        </button>
+        {err && <p style={{color:"var(--rose)",marginTop:"10px",fontSize:"13px"}}>⚠️ {err}</p>}
+      </div>
+
+      {result && (
+        <div className="card">
+          <h3>AI Answer (Grounded in Retrieved Cases)</h3>
+          <div className="result-box">
+            <pre>{result.answer}</pre>
+          </div>
+
+          {result.sources?.length > 0 && (
+            <div style={{marginTop:"1rem"}}>
+              <h3>📚 Case Citations ({result.sources.length} retrieved)</h3>
+              {result.sources.map((s,i) => (
+                <div key={i} className="section-card" style={{marginTop:"8px"}}>
+                  <div className="section-header">
+                    <div>
+                      <span style={{fontWeight:700,fontSize:"14px",color:"var(--navy)"}}>{s.case_no}</span>
+                      <span style={{fontSize:"12px",color:"var(--ink3)",marginLeft:"8px"}}>{s.court} · {s.year}</span>
+                    </div>
+                    <span className="badge badge-navy">PPC §{s.section}</span>
+                  </div>
+                  <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginTop:"4px"}}>
+                    <span className="source-chip">{s.outcome}</span>
+                    <span className="source-chip">{s.parties}</span>
+                    <span className="source-chip">Relevance: {(s.score*100).toFixed(0)}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="disclaimer">⚠️ AI-assisted legal research — not a substitute for legal advice. Always consult a qualified advocate.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 2 — FIR Drafting
+// ═══════════════════════════════════════════════════════════════════════════
+function FIRDraft() {
+  const [complaint, setComplaint] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async () => {
+    if (complaint.trim().length < 20) { setErr("Please provide at least 20 characters describing the complaint."); return; }
+    setLoading(true); setErr(""); setResult(null);
+    try { setResult(await api.firDraft(complaint)); }
+    catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const sev = { Critical:"sev-critical", High:"sev-high", Medium:"sev-medium", Low:"sev-low" };
+
+  return (
+    <div>
+      <div className="card">
+        <h2>📋 FIR Auto-Draft System</h2>
+        <p className="sub">Describe the incident in Urdu or English. The system identifies relevant PPC sections and generates a bilingual FIR draft for officer review.</p>
+
+        <div className="alert-banner">
+          <strong>Human-in-the-loop:</strong> This tool generates a draft only. A police officer must review, correct, and approve before any FIR is officially filed.
+        </div>
+
+        <div className="form-row">
+          <label>Complaint Description (شکایت کی تفصیل)</label>
+          <textarea rows={5} value={complaint} onChange={e=>setComplaint(e.target.value)}
+            placeholder="Describe what happened in your own words (Urdu or English)&#10;مثال: کل رات کو میرے گھر میں چوری ہوئی۔ چور پچھلی کھڑکی توڑ کر اندر آیا اور میرا موبائل فون، نقدی اور زیورات لے گیا..." />
+        </div>
+
+        <button className="btn btn-primary" onClick={submit} disabled={loading||complaint.trim().length<20}>
+          {loading ? <><Spinner /> Generating FIR...</> : "📝 Generate FIR Draft"}
+        </button>
+        {err && <p style={{color:"var(--rose)",marginTop:"10px",fontSize:"13px"}}>⚠️ {err}</p>}
+      </div>
+
+      {result && (
+        <>
+          {result.matched_sections?.length > 0 && (
+            <div className="card">
+              <h3>🔍 Matched PPC Sections ({result.matched_sections.length} identified)</h3>
+              {result.matched_sections.map((s,i) => (
+                <div key={i} className="section-card">
+                  <div className="section-header">
+                    <div>
+                      <span className="section-num">§ {s.section}</span>
+                      <span style={{fontSize:"14px",color:"var(--ink2)",marginLeft:"8px"}}>{s.title}</span>
+                    </div>
+                    <span className={`severity ${sev[s.severity]||"sev-medium"}`}>{s.severity}</span>
+                  </div>
+                  <p style={{fontSize:"13px",color:"var(--ink3)",margin:"4px 0"}}><em>{s.urdu_title}</em></p>
+                  <p style={{fontSize:"13px",color:"var(--ink2)"}}>{s.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="card">
+            <h3>📄 Generated FIR Draft</h3>
+            <div className="fir-text">{result.fir_draft}</div>
+            <div className="disclaimer" style={{marginTop:"1rem"}}>⚠️ {result.disclaimer}</div>
+            <button className="btn btn-outline btn-sm" style={{marginTop:"10px"}} onClick={() => {
+              const blob = new Blob([result.fir_draft], {type:"text/plain"});
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = "FIR_Draft_AdaalAI.txt";
+              a.click();
+            }}>⬇ Download Draft</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 3 — Case Priority
+// ═══════════════════════════════════════════════════════════════════════════
+function CasePriority() {
+  const [form, setForm] = useState({
+    case_id:"ADL-2024-001", charge_section:"302", charge_severity:3,
+    days_pending:400, adjournments:12, is_under_trial:1,
+    under_trial_days:400, court_visits:8, accused_age:28, status:"Under Trial"
+  });
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const f = (key, val) => setForm(p => ({...p, [key]: typeof val==="string" && !isNaN(val) && val!="" ? +val : val}));
+
+  const submit = async () => {
+    setLoading(true); setErr(""); setResult(null);
+    try { setResult(await api.scoreCase(form)); }
+    catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      <div className="card">
+        <h2>📊 Case Prioritization Engine</h2>
+        <p className="sub">Enter case details to get an AI-generated priority score using the XGBoost model. Helps judges schedule urgent cases first.</p>
+
+        <div className="row">
+          <div className="form-row"><label>Case ID</label><input value={form.case_id} onChange={e=>f("case_id",e.target.value)} /></div>
+          <div className="form-row"><label>PPC Section</label><input value={form.charge_section} onChange={e=>f("charge_section",e.target.value)} placeholder="e.g. 302" /></div>
+        </div>
+
+        <div className="row">
+          <div className="form-row">
+            <label>Charge Severity</label>
+            <select value={form.charge_severity} onChange={e=>f("charge_severity",+e.target.value)}>
+              <option value={1}>1 — Low (trespass, minor theft)</option>
+              <option value={2}>2 — Medium (fraud, assault)</option>
+              <option value={3}>3 — High (murder, rape, robbery)</option>
+            </select>
+          </div>
+          <div className="form-row"><label>Days Pending</label><input type="number" value={form.days_pending} onChange={e=>f("days_pending",e.target.value)} /></div>
+        </div>
+
+        <div className="row">
+          <div className="form-row"><label>Total Adjournments</label><input type="number" value={form.adjournments} onChange={e=>f("adjournments",e.target.value)} /></div>
+          <div className="form-row"><label>Hearings Held</label><input type="number" value={form.court_visits} onChange={e=>f("court_visits",e.target.value)} /></div>
+        </div>
+
+        <div className="row">
+          <div className="form-row">
+            <label>Is Under Trial (in custody)?</label>
+            <select value={form.is_under_trial} onChange={e=>f("is_under_trial",+e.target.value)}>
+              <option value={0}>No — on bail / free</option>
+              <option value={1}>Yes — in custody</option>
+            </select>
+          </div>
+          <div className="form-row"><label>Days in Custody</label><input type="number" value={form.under_trial_days} onChange={e=>f("under_trial_days",e.target.value)} /></div>
+        </div>
+
+        <div className="row">
+          <div className="form-row"><label>Accused Age</label><input type="number" value={form.accused_age} onChange={e=>f("accused_age",e.target.value)} /></div>
+          <div className="form-row"><label>Case Status</label><input value={form.status} onChange={e=>f("status",e.target.value)} /></div>
+        </div>
+
+        <button className="btn btn-primary" onClick={submit} disabled={loading}>
+          {loading ? <><Spinner /> Scoring...</> : "🤖 Score Case Priority"}
+        </button>
+        {err && <p style={{color:"var(--rose)",marginTop:"10px",fontSize:"13px"}}>⚠️ {err}</p>}
+      </div>
+
+      {result && (
+        <div className="card">
+          <div style={{display:"flex",alignItems:"center",gap:"16px",marginBottom:"1rem"}}>
+            <Badge label={result.priority_label} />
+            <span style={{fontSize:"13px",color:"var(--ink3)"}}>Confidence: {(result.confidence*100).toFixed(1)}%</span>
+          </div>
+
+          <h3 style={{marginBottom:"8px"}}>Model Probability Breakdown</h3>
+          <div className="stat-row">
+            {["High","Medium","Low"].map(l => (
+              <div key={l} className="stat-box">
+                <div className="stat-n" style={{color: l==="High"?"var(--rose)":l==="Medium"?"var(--gold)":"var(--teal)"}}>
+                  {((result.probabilities?.[l]||0)*100).toFixed(1)}%
+                </div>
+                <div className="stat-l">{l} Priority</div>
+              </div>
+            ))}
+          </div>
+
+          {result.flags?.length > 0 && (
+            <>
+              <h3 style={{margin:"1rem 0 8px"}}>🚩 Priority Flags</h3>
+              {result.flags.map((f,i)=>(
+                <div key={i} className={`flag-item ${f.includes("CONSTITUTIONAL")||f.includes("custody")?"danger":""}`}>{f}</div>
+              ))}
+            </>
+          )}
+          <div className="disclaimer">Priority score is advisory only. Final scheduling decisions rest with the presiding judge per NJPMC AI Guidelines (April 2026).</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 4 — Citizen Chatbot
+// ═══════════════════════════════════════════════════════════════════════════
+function CitizenChat() {
+  const [messages, setMessages] = useState([
+    { role:"ai", text:"السلام علیکم! میں آپ کا قانونی مددگار ہوں۔\n\nHello! I am AdaalAI Citizen Assistant. I can help you understand your legal rights in Urdu and English.\n\nTry asking:\n• میری گرفتاری کے وقت میرے کیا حقوق ہیں؟\n• How do I file an FIR?\n• What are my bail rights?\n• مجھے مفت وکیل کیسے ملے گا؟", emergency:false }
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const chatRef = useRef(null);
+
+  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [messages]);
+
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const q = input.trim();
+    setInput("");
+    setMessages(m => [...m, { role:"user", text:q }]);
+    setLoading(true);
+    try {
+      const r = await api.chat(q);
+      setMessages(m => [...m, { role:"ai", text:r.answer, emergency:r.emergency }]);
+    } catch(e) {
+      setMessages(m => [...m, { role:"ai", text:"Sorry, I couldn't connect to the server. Please check that the backend is running.", emergency:false }]);
+    }
+    setLoading(false);
+  };
+
+  const quickQ = (q) => { setInput(q); };
+  const QUICK = ["میرے حقوق کیا ہیں؟","How to file FIR?","Bail rights","مفت وکیل"];
+
+  return (
+    <div>
+      <div className="card">
+        <h2>💬 Citizen Legal Chatbot</h2>
+        <p className="sub">Ask any legal question in Urdu or English. Get answers about your rights — free, 24/7.</p>
+
+        <div style={{marginBottom:"10px",display:"flex",gap:"6px",flexWrap:"wrap"}}>
+          {QUICK.map(q=><button key={q} className="btn btn-outline btn-sm" onClick={()=>quickQ(q)}>{q}</button>)}
+        </div>
+
+        <div ref={chatRef} id="chat-list">
+          {messages.map((m,i)=>(
+            <div key={i} style={{display:"flex",flexDirection:"column",alignItems:m.role==="user"?"flex-end":"flex-start"}}>
+              <div className={`chat-bubble ${m.role==="user"?"chat-user":"chat-ai"}`}>{m.text}</div>
+              {m.emergency && <div className="chat-emergency">🚨 Emergency detected. Police: 15 | Rescue: 1122 | Women Helpline: 1099</div>}
+            </div>
+          ))}
+          {loading && (
+            <div style={{display:"flex"}}>
+              <div className="chat-bubble chat-ai" style={{color:"var(--ink3)"}}>⌛ Thinking...</div>
+            </div>
+          )}
+        </div>
+
+        <div className="chat-input-row">
+          <input value={input} onChange={e=>setInput(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()}
+            placeholder="اپنا سوال یہاں لکھیں — Type your question here (Urdu or English)" />
+          <button className="btn btn-primary" onClick={send} disabled={loading||!input.trim()}>
+            {loading ? <Spinner/> : "Send"}
+          </button>
+        </div>
+      </div>
+      <div style={{textAlign:"center",marginTop:"10px",fontSize:"12px",color:"var(--ink3)"}}>
+        This is legal information only — not legal advice. For your specific case, consult a qualified advocate.
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WELCOME / HOME
+// ═══════════════════════════════════════════════════════════════════════════
+function Home({ setTab }) {
+  const modules = [
+    { icon:"⚖️", title:"Legal Research", sub:"Search 350K+ judgments by natural language in Urdu or English", tab:"research" },
+    { icon:"📋", title:"FIR Auto-Draft", sub:"Generate a bilingual FIR draft from your complaint in minutes", tab:"fir" },
+    { icon:"📊", title:"Case Priority", sub:"Score case urgency with XGBoost ML model for judge scheduling", tab:"priority" },
+    { icon:"💬", title:"Citizen Chat", sub:"Ask legal rights questions in Urdu — free & accessible 24/7", tab:"chat" },
+  ];
+  return (
+    <div className="welcome">
+      <h1>Adaal<span>AI</span></h1>
+      <p className="welcome-sub">Free AI-powered judicial assistance for Pakistan<br/>عدل اے آئی — پاکستان کے عدالتی نظام کے لیے مفت اے آئی</p>
+      <div className="alert-banner" style={{maxWidth:"640px",margin:"0 auto 1.5rem"}}>
+        <strong>🏛 Policy approved April 29, 2026:</strong> Pakistan's Supreme Court (NJPMC) has officially authorised AI for legal research, case management, and document processing.
+      </div>
+      <div className="module-cards" style={{maxWidth:"640px",margin:"0 auto 1.5rem"}}>
+        {modules.map(m=>(
+          <button key={m.tab} className="module-card" onClick={()=>setTab(m.tab)}>
+            <div className="module-icon">{m.icon}</div>
+            <h3>{m.title}</h3>
+            <p>{m.sub}</p>
+          </button>
+        ))}
+      </div>
+      <p style={{fontSize:"13px",color:"var(--ink3)"}}>
+        Free & Open Source · MIT License · Built for Pakistan · Urdu-First
+      </p>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROOT
+// ═══════════════════════════════════════════════════════════════════════════
+function App() {
+  const [tab, setTab] = useState("home");
+  const tabs = [
+    { id:"research", label:"⚖️ Research" },
+    { id:"fir",      label:"📋 FIR Draft" },
+    { id:"priority", label:"📊 Priority" },
+    { id:"chat",     label:"💬 Chat" },
+  ];
+
+  return (
+    <>
+      <nav className="nav">
+        <span className="nav-logo">Adaal<span>AI</span></span>
+        <span className="nav-tag">Pakistan Judicial AI</span>
+        <div className="nav-tabs">
+          {tabs.map(t=>(
+            <button key={t.id} className={`nav-tab ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}>{t.label}</button>
+          ))}
+        </div>
+      </nav>
+      <div className="page">
+        {tab==="home"     && <Home setTab={setTab} />}
+        {tab==="research" && <LegalResearch />}
+        {tab==="fir"      && <FIRDraft />}
+        {tab==="priority" && <CasePriority />}
+        {tab==="chat"     && <CitizenChat />}
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
